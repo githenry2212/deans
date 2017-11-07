@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans:beans xmlns="http://www.springframework.org/schema/batch"
+             xmlns:beans="http://www.springframework.org/schema/beans"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             xmlns:context="http://www.springframework.org/schema/context"
+             xmlns:jms="http://www.springframework.org/schema/jms"
+             xmlns:amq="http://activemq.apache.org/schema/core"
+             xsi:schemaLocation="http://www.springframework.org/schema/beans
+    http://www.springframework.org/schema/beans/spring-beans.xsd
+    http://www.springframework.org/schema/context
+    http://www.springframework.org/schema/context/spring-context.xsd
+    http://www.springframework.org/schema/jms
+    http://www.springframework.org/schema/jms/spring-jms.xsd
+    http://activemq.apache.org/schema/core
+    http://activemq.apache.org/schema/core/activemq-core.xsd
+    http://www.springframework.org/schema/batch
+    http://www.springframework.org/schema/batch/spring-batch-3.0.xsd">
+
+    <beans:import resource="classpath:context-db.xml"/>
+    <beans:import resource="classpath:context-job.xml"/>
+    <beans:import resource="classpath:context-jms.xml"/>
+
+    <job id="remotePartitionJob" job-repository="jobRepository">
+        <step id="remotePartitionStep">
+            <partition partitioner="partitioner" handler="partitionHandler" aggregator=""/>
+        </step>
+    </job>
+
+    <beans:bean id="partitioner" class="com.gzcb.ams.batch.remote.partitioner.RemoteBatchPartitioner">
+        <beans:property name="jdbcTemplate" ref="jdbcTemplate"/>
+    </beans:bean>
+
+    <beans:bean id="partitionHandler" class="com.gzcb.ams.batch.remote.handler.RemoteBatchPartitionHandler">
+        <beans:property name="jmsTemplate" ref="jmsTemplate"/>
+        <beans:property name="stepName" value="partitionSlaveStep"/>
+        <beans:property name="destinationQueueName" value="queue.partition.request"/>
+        <beans:property name="replyQueueName" value="queue.partition.response"/>
+        <beans:property name="gridSize" value="100"/>
+    </beans:bean>
+
+    <!-- launcher-->
+    <beans:bean id="jobLauncher"
+                class="org.springframework.batch.core.launch.support.SimpleJobLauncher">
+        <beans:property name="jobRepository" ref="jobRepository"/>
+    </beans:bean>
+</beans:beans>

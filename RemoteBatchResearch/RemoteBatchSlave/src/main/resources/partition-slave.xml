@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans:beans xmlns="http://www.springframework.org/schema/batch"
+             xmlns:beans="http://www.springframework.org/schema/beans"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             xmlns:context="http://www.springframework.org/schema/context"
+             xmlns:jms="http://www.springframework.org/schema/jms"
+             xmlns:amq="http://activemq.apache.org/schema/core"
+             xsi:schemaLocation="http://www.springframework.org/schema/beans
+    http://www.springframework.org/schema/beans/spring-beans.xsd
+    http://www.springframework.org/schema/context
+    http://www.springframework.org/schema/context/spring-context.xsd
+    http://www.springframework.org/schema/jms
+    http://www.springframework.org/schema/jms/spring-jms.xsd
+    http://activemq.apache.org/schema/core
+    http://activemq.apache.org/schema/core/activemq-core.xsd
+    http://www.springframework.org/schema/batch
+    http://www.springframework.org/schema/batch/spring-batch-3.0.xsd">
+
+    <beans:import resource="classpath:context-db.xml"/>
+    <beans:import resource="classpath:context-job.xml"/>
+    <beans:import resource="classpath:context-jms.xml"/>
+
+    <step id="partitionSlaveStep">
+        <tasklet>
+            <chunk reader="creditPagingReader" processor="creditProcessor" writer="creditItemWriter"
+                   commit-interval="20">
+            </chunk>
+        </tasklet>
+    </step>
+    <!-- transaction-manager="transactionManager"
+                                acknowledge="transacted"-->
+    <jms:listener-container connection-factory="connectionFactory" concurrency="1">
+        <jms:listener destination="queue.partition.request" ref="stepExecutionRequestHandler"/>
+    </jms:listener-container>
+
+    <beans:bean id="stepExecutionRequestHandler" class="com.gzcb.ams.batch.remote.handler.StepExecutionRequestHandler">
+        <beans:property name="jobExplorer" ref="jobExplorer"/>
+        <beans:property name="stepLocator" ref="stepLocator"/>
+        <beans:property name="jmsTemplate" ref="jmsTemplate"/>
+        <beans:property name="replyQueueName" value="queue.partition.response"/>
+    </beans:bean>
+
+    <beans:bean id="jobExplorer" class="org.springframework.batch.core.explore.support.JobExplorerFactoryBean">
+        <beans:property name="dataSource" ref="dataSource"/>
+    </beans:bean>
+
+    <beans:bean id="stepLocator" class="com.gzcb.ams.batch.remote.locator.BeanFactoryStepLocator"/>
+
+    <!-- reader 配置-->
+    <beans:bean id="creditPagingReader" scope="step"
+                class="org.springframework.batch.item.database.JdbcPagingItemReader">
+        <beans:property name="dataSource" ref="dataSource"/>
+        <beans:property name="queryProvider" ref="creditReaderProvider"/>
+        <beans:property name="pageSize" value="20"/>
+        <beans:property name="rowMapper" ref="creditRowMapper"/>
+    </beans:bean>
+
+    <beans:bean id="creditReaderProvider" scope="step"
+                class="org.springframework.batch.item.database.support.SqlPagingQueryProviderFactoryBean">
+        <beans:property name="dataSource" ref="dataSource"/>
+        <beans:property name="selectClause" value="select ID,ACCOUNT_ID,NAME,AMOUNT,DATE,ADDRESS"/>
+        <beans:property name="fromClause" value="from t_credit_bill"/>
+        <beans:property name="whereClause"
+                        value="where ID between #{stepExecutionContext[min]} and #{stepExecutionContext[max]}"/>
+        <beans:property name="sortKey" value="ID"/>
+    </beans:bean>
+
+    <beans:bean id="creditRowMapper" class="com.gzcb.ams.batch.remote.mapper.CreditBillRowMapper"/>
+
+    <beans:bean id="creditProcessor" class="com.gzcb.ams.batch.remote.processor.PartitionCreditProcessor"
+                scope="step"/>
+
+    <!--<beans:bean id="creditItemWriter" class="com.gzcb.ams.batch.remote.writer.SystemOutWriter"
+                scope="step">
+        <beans:property name="resource" value="file:D:/target/outputFile#{stepExecutionContext[min]}.csv"/>
+        <beans:property name="lineAggregator">
+            <beans:bean
+                    class="org.springframework.batch.item.file.transform.DelimitedLineAggregator">
+                <beans:property name="delimiter" value=","/>
+                <beans:property name="fieldExtractor">
+                    <beans:bean class="org.springframework.batch.item.file.transform.BeanWrapperFieldExtractor">
+                        <beans:property name="names" value="id,accountID,name,amount,date,address"/>
+                    </beans:bean>
+                </beans:property>
+            </beans:bean>
+        </beans:property>
+    </beans:bean>-->
+    <beans:bean id="creditItemWriter" class="com.gzcb.ams.batch.remote.writer.SystemOutWriter"
+                scope="step"/>
+
+</beans:beans>
