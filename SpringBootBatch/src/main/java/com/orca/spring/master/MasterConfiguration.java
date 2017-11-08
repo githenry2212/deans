@@ -23,7 +23,6 @@ import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jms.core.JmsMessagingTemplate;
 
-import javax.sql.DataSource;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Date;
@@ -42,8 +41,6 @@ public class MasterConfiguration implements InitializingBean {
     private StepBuilderFactory stepBuilderFactory;
     @Autowired
     private JobBuilderFactory jobBuilderFactory;
-    @Autowired
-    private DataSource dataSource;
     @Autowired
     private ActiveMQConnectionFactory connectionFactory;
 
@@ -74,7 +71,7 @@ public class MasterConfiguration implements InitializingBean {
 
     @Bean
     Job getJob(@Qualifier("partitionMasterStep") Step step) {
-        return jobBuilderFactory.get("partitionMasterJob").flow(step).end().build();
+        return jobBuilderFactory.get("partitionMasterJob").start(step).build();
     }
 
     @Override

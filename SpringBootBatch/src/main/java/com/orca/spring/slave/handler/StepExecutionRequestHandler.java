@@ -17,12 +17,9 @@ import org.springframework.util.Assert;
  * @author yangfan
  * @since 2017/11/7 14:24
  */
-@Component
 public class StepExecutionRequestHandler {
 
-    @Autowired
     private JobExplorer jobExplorer;
-    @Autowired
     private StepLocator stepLocator;
 
     @JmsListener(destination = "queue.partition.request", concurrency = "2")
@@ -45,5 +42,21 @@ public class StepExecutionRequestHandler {
             // The receiver should update the stepExecution in repository
         }
         return stepExecution;
+    }
+
+    public JobExplorer getJobExplorer() {
+        return jobExplorer;
+    }
+
+    public void setJobExplorer(JobExplorer jobExplorer) {
+        this.jobExplorer = jobExplorer;
+    }
+
+    public StepLocator getStepLocator() {
+        return stepLocator;
+    }
+
+    public void setStepLocator(StepLocator stepLocator) {
+        this.stepLocator = stepLocator;
     }
 }

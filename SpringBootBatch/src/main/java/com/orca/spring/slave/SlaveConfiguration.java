@@ -1,6 +1,8 @@
 package com.orca.spring.slave;
 
 import com.orca.spring.beans.CreditBill;
+import com.orca.spring.slave.handler.StepExecutionRequestHandler;
+import com.orca.spring.slave.locator.BeanFactoryStepLocator;
 import com.orca.spring.slave.mapper.CreditBillRowMapper;
 import com.orca.spring.slave.processor.PartitionCreditProcessor;
 import com.orca.spring.slave.writer.SystemOutWriter;
@@ -9,7 +11,8 @@ import org.springframework.batch.core.configuration.annotation.EnableBatchProces
 import org.springframework.batch.core.configuration.annotation.JobBuilderFactory;
 import org.springframework.batch.core.configuration.annotation.StepBuilderFactory;
 import org.springframework.batch.core.configuration.annotation.StepScope;
-import org.springframework.batch.item.ExecutionContext;
+import org.springframework.batch.core.explore.JobExplorer;
+import org.springframework.batch.core.step.StepLocator;
 import org.springframework.batch.item.ItemProcessor;
 import org.springframework.batch.item.ItemReader;
 import org.springframework.batch.item.ItemWriter;
@@ -91,5 +94,18 @@ public class SlaveConfiguration {
     @StepScope
     ItemWriter<CreditBill> itemWriter() {
         return new SystemOutWriter();
+    }
+
+    @Bean
+    BeanFactoryStepLocator stepLocator(){
+        return new BeanFactoryStepLocator();
+    }
+
+    @Bean
+    StepExecutionRequestHandler requestHandler(StepLocator stepLocator, JobExplorer jobExplorer){
+        StepExecutionRequestHandler handler = new StepExecutionRequestHandler();
+        handler.setJobExplorer(jobExplorer);
+        handler.setStepLocator(stepLocator);
+        return handler;
     }
 }

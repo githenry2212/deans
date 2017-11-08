@@ -12,7 +12,6 @@ import org.springframework.util.Assert;
 import java.util.Arrays;
 import java.util.Collection;
 
-@Component
 public class BeanFactoryStepLocator implements StepLocator, BeanFactoryAware {
 
     private BeanFactory beanFactory;
